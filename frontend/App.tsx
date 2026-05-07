@@ -19,8 +19,8 @@ export default function App() {
               <Shield className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="font-bold text-lg leading-tight">VA Adjudicator</h1>
-              <p className="text-xs text-slate-400 font-medium tracking-wide uppercase">Automated Claims Review</p>
+              <h1 className="font-bold text-lg leading-tight">Review Claims Decisions</h1>
+              //<p className="text-xs text-slate-400 font-medium tracking-wide uppercase">Review Claims Decisions</p>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -53,4 +53,6 @@ export default function App() {
       </main>
     </div>
   );
+}
+
 }
