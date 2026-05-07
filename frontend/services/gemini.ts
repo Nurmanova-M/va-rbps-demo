@@ -1,6 +1,4 @@
 
-
-
 import { GoogleGenAI, Type } from '@google/genai';
 import { Claim } from '../types';
 import { mockRules } from '../rules';
@@ -8,7 +6,7 @@ import { mockRules } from '../rules';
 // Initialize the SDK. It expects process.env.API_KEY to be available in the environment.
 // Initialize the SDK strictly using process.env.API_KEY so the environment bundler can inject it.
 // For this browser-based demo environment, we simulate it if not present, 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY, vertexai: true });
+// const ai = new GoogleGenAI({ apiKey: process.env.API_KEY, vertexai: true });
 // but in a real app, this must be securely provided.
 const apiKey = (window as any).process?.env?.API_KEY || 'dummy-key-for-ui-testing';
 
