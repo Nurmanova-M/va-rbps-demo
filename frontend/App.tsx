@@ -20,7 +20,7 @@ export default function App() {
             </div>
             <div>
               <h1 className="font-bold text-lg leading-tight">Review Claims Decisions</h1>
-              //<p className="text-xs text-slate-400 font-medium tracking-wide uppercase">Review Claims Decisions</p>
+              
             </div>
           </div>
           <div className="flex items-center gap-4">
