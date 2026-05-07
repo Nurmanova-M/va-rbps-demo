@@ -1,9 +1,14 @@
+
+
+
 import { GoogleGenAI, Type } from '@google/genai';
 import { Claim } from '../types';
 import { mockRules } from '../rules';
 
 // Initialize the SDK. It expects process.env.API_KEY to be available in the environment.
+// Initialize the SDK strictly using process.env.API_KEY so the environment bundler can inject it.
 // For this browser-based demo environment, we simulate it if not present, 
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY, vertexai: true });
 // but in a real app, this must be securely provided.
 const apiKey = (window as any).process?.env?.API_KEY || 'dummy-key-for-ui-testing';
 
@@ -28,6 +33,7 @@ const getRelevantRuleContext = (claim: Claim) => {
 
   if (uniqueCodes.length === 0) return '';
 
+
   const matchedRules: typeof mockRules = [];
   mockRules.forEach(r => {
     const ruleMatch = r.rule_id.match(/CP\s*\d+([.-]\d+)?[a-zA-Z]?/i);
@@ -51,9 +57,7 @@ export const generateExplanation = async (claim: Claim): Promise<string> => {
   if (explanationCache.has(claim.Claim_ID)) {
     return explanationCache.get(claim.Claim_ID)!;
   }
-
-  if (!ai) return JSON.stringify({ confidenceScore: 0, keyFindings: ["AI Service unavailable."], detailedExplanation: "Please check API key configuration." });
-  
+if (!ai) return JSON.stringify({ confidenceScore: 0, keyFindings: ["AI Service unavailable."], detailedExplanation: "Please check API key configuration." });
   const ruleContext = getRelevantRuleContext(claim);
 
   const prompt = `
@@ -124,8 +128,7 @@ export const generateReflection = async (claim: Claim, explanationJson: string):
   if (reflectionCache.has(claim.Claim_ID)) {
     return reflectionCache.get(claim.Claim_ID)!;
   }
-
-  if (!ai) return JSON.stringify({ status: "Logical Error", confidenceScore: 0, detailedJustification: "Please check API key configuration." });
+  if (!ai) return JSON.stringify({ confidenceScore: 0, keyFindings: ["AI Service unavailable."], detailedExplanation: "Please check API key configuration." });
 
   const ruleContext = getRelevantRuleContext(claim);
 
