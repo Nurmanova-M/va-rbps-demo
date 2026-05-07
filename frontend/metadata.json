@@ -1,4 +1,4 @@
 {
-  "name": "VA Adjudicator Dashboard",
+  "name": "Review Claims Decisions",
   "description": "A dashboard for VA adjudicators to review automated claim decisions, featuring AI-assisted explanations and hallucination checks."
 }
