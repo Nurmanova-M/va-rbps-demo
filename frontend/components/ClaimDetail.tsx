@@ -207,61 +207,7 @@ export function ClaimDetail({ claim, onBack }: Props) {
             </div>
           </div>
         </section>
-
-        {/* Action & Rules */}
-        <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center gap-2">
-            <FileText className="w-4 h-4 text-slate-500" />
-            <h2 className="font-semibold text-slate-800">Claim Details & Rules</h2>
-          </div>
-          <div className="p-4 space-y-4 text-sm">
-            <div>
-              <p className="text-slate-500 text-xs">Action Requested</p>
-              <p className="font-medium text-slate-900">{claim.Action_Requested}</p>
-            </div>
-
-            {claim.Discrepancy_Explanation && claim.Audit_Status === 'DISCREPANCY' && (
-              <div className="bg-amber-50 p-4 rounded-md border border-amber-100">
-                <p className="text-amber-800 text-xs font-semibold mb-1">Discrepancy Note</p>
-                <p className="text-amber-900">{claim.Discrepancy_Explanation}</p>
-              </div>
-            )}
-
-            {relevantRules.length > 0 && (
-              <div className="space-y-2 mt-4">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Rule Definitions</p>
-                {relevantRules.map((rule, idx) => (
-                  <details key={idx} className="bg-white rounded border border-slate-200 text-sm shadow-sm group">
-                    <summary className="font-semibold text-slate-800 flex items-center gap-1.5 p-3 cursor-pointer hover:bg-slate-50 list-none outline-none [&::-webkit-details-marker]:hidden">
-                      <BookOpen className="w-4 h-4 text-slate-500" /> 
-                      {rule.rule_id}
-                      <ChevronDown className="w-4 h-4 ml-auto text-slate-400 group-open:rotate-180 transition-transform" />
-                    </summary>
-                    <div className="p-4 pt-0 border-t border-slate-100 mt-2">
-                      <p className="text-slate-600 leading-relaxed">
-                        {rule.description}
-                        {rule.use_case_ref && (
-                          <>
-                            <br />
-                            <span className="font-medium text-slate-700">Use Case:</span> {rule.use_case_ref}
-                          </>
-                        )}
-                        {rule.laws_regulations && (
-                          <>
-                            <br />
-                            <span className="font-medium text-slate-700">Ref:</span> {rule.laws_regulations}
-                          </>
-                        )}
-                      </p>
-                    </div>
-                  </details>
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Dependents (Children) Table */}
+{/* Dependents (Children) Table */}
         {showDependents && (
           <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center justify-between">
@@ -386,6 +332,60 @@ export function ClaimDetail({ claim, onBack }: Props) {
             </div>
           </section>
         )}
+        {/* Action & Rules */}
+        <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex items-center gap-2">
+            <FileText className="w-4 h-4 text-slate-500" />
+            <h2 className="font-semibold text-slate-800">Claim Details & Policies</h2>
+          </div>
+          <div className="p-4 space-y-4 text-sm">
+            <div>
+              <p className="text-slate-500 text-xs">Action Requested</p>
+              <p className="font-medium text-slate-900">{claim.Action_Requested}</p>
+            </div>
+
+            {claim.Discrepancy_Explanation && claim.Audit_Status === 'DISCREPANCY' && (
+              <div className="bg-amber-50 p-4 rounded-md border border-amber-100">
+                <p className="text-amber-800 text-xs font-semibold mb-1">Discrepancy Note</p>
+                <p className="text-amber-900">{claim.Discrepancy_Explanation}</p>
+              </div>
+            )}
+
+            {relevantRules.length > 0 && (
+              <div className="space-y-2 mt-4">
+                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Policy Definitions</p>
+                {relevantRules.map((rule, idx) => (
+                  <details key={idx} className="bg-white rounded border border-slate-200 text-sm shadow-sm group">
+                    <summary className="font-semibold text-slate-800 flex items-center gap-1.5 p-3 cursor-pointer hover:bg-slate-50 list-none outline-none [&::-webkit-details-marker]:hidden">
+                      <BookOpen className="w-4 h-4 text-slate-500" /> 
+                      {rule.rule_id}
+                      <ChevronDown className="w-4 h-4 ml-auto text-slate-400 group-open:rotate-180 transition-transform" />
+                    </summary>
+                    <div className="p-4 pt-0 border-t border-slate-100 mt-2">
+                      <p className="text-slate-600 leading-relaxed">
+                        {rule.description}
+                        {rule.use_case_ref && (
+                          <>
+                            <br />
+                            <span className="font-medium text-slate-700">Use Case:</span> {rule.use_case_ref}
+                          </>
+                        )}
+                        {rule.laws_regulations && (
+                          <>
+                            <br />
+                            <span className="font-medium text-slate-700">Ref:</span> {rule.laws_regulations}
+                          </>
+                        )}
+                      </p>
+                    </div>
+                  </details>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        
       </div>
 
       {/* AI Agents Section - Moved Below Claim Details */}
