@@ -13,6 +13,7 @@ interface DashboardProps {
 export function Dashboard({ claims, onClaimSelect, activeFilter, onFilterChange }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'trends'>('overview');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedRuleFilter, setSelectedRuleFilter] = useState<string | null>(null);
   
   // Calculate metrics
   const metrics = useMemo(() => {
@@ -34,6 +35,19 @@ export function Dashboard({ claims, onClaimSelect, activeFilter, onFilterChange 
     };
   }, [claims]);
 
+  // All unique rules for the filter dropdown
+  const allUniqueRules = useMemo(() => {
+    const rules = new Set<string>();
+    claims.filter(c => c.Audit_Status === 'DISCREPANCY').forEach(c => {
+      if (!c.Rules_Broken) return;
+      c.Rules_Broken.split('|').map(s => s.trim()).filter(Boolean).forEach(r => {
+        const match = r.match(/^([A-Z0-9.]+)/);
+        rules.add(match ? match[1] : r);
+      });
+    });
+    return Array.from(rules).sort();
+  }, [claims]);
+
   // Calculate top discrepancy rules
   const topDiscrepancyRules = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -51,26 +65,34 @@ export function Dashboard({ claims, onClaimSelect, activeFilter, onFilterChange 
 
   // Calculate trend data for the chart
   const trendData = useMemo(() => {
-    const dataByDate: Record<string, { date: string; discrepancies: number; accurate: number }> = {};
+    const dataByDate: Record<string, { date: string; discrepancies: number }> = {};
     
+    // Initialize all dates to 0 to ensure continuous timeline
+    const allDates = Array.from(new Set(claims.map(c => c.Claim_Date))).sort();
+    allDates.forEach(d => {
+      dataByDate[d] = { date: d, discrepancies: 0 };
+    });
+
     claims.forEach(c => {
-      if (!dataByDate[c.Claim_Date]) {
-        dataByDate[c.Claim_Date] = { date: c.Claim_Date, discrepancies: 0, accurate: 0 };
-      }
       if (c.Audit_Status === 'DISCREPANCY') {
-        dataByDate[c.Claim_Date].discrepancies += 1;
-      } else {
-        dataByDate[c.Claim_Date].accurate += 1;
+        let matchesRule = true;
+        if (selectedRuleFilter) {
+           const rules = (c.Rules_Broken || '').split('|').map(s => s.trim());
+           matchesRule = rules.some(r => r.startsWith(selectedRuleFilter));
+        }
+        if (matchesRule) {
+          dataByDate[c.Claim_Date].discrepancies += 1;
+        }
       }
     });
 
     return Object.values(dataByDate).sort((a, b) => a.date.localeCompare(b.date));
-  }, [claims]);
+  }, [claims, selectedRuleFilter]);
 
   // Calculate max value for the custom chart scaling
   const maxChartValue = useMemo(() => {
     if (trendData.length === 0) return 1;
-    return Math.max(...trendData.map(d => Math.max(d.discrepancies, d.accurate)), 1);
+    return Math.max(...trendData.map(d => d.discrepancies), 1);
   }, [trendData]);
 
   // Apply widget filters for Overview tab
@@ -88,6 +110,21 @@ export function Dashboard({ claims, onClaimSelect, activeFilter, onFilterChange 
   // Separate into Discrepancy and Accurate for Overview tab
   const discrepancyClaims = filteredClaims.filter(c => c.Audit_Status === 'DISCREPANCY');
   const accurateClaims = filteredClaims.filter(c => c.Audit_Status === 'Accurate');
+
+  // Filtered table data for Trends tab
+  const trendsTableData = useMemo(() => {
+    let data = claims.filter(c => c.Audit_Status === 'DISCREPANCY');
+    if (selectedDate) {
+      data = data.filter(c => c.Claim_Date === selectedDate);
+    }
+    if (selectedRuleFilter) {
+      data = data.filter(c => {
+        const rules = (c.Rules_Broken || '').split('|').map(s => s.trim());
+        return rules.some(r => r.startsWith(selectedRuleFilter));
+      });
+    }
+    return data;
+  }, [claims, selectedDate, selectedRuleFilter]);
 
   // Define columns
   const columns: ColumnDef<Claim>[] = [
@@ -314,16 +351,28 @@ export function Dashboard({ claims, onClaimSelect, activeFilter, onFilterChange 
                   <h3 className="text-lg font-semibold text-slate-800">Discrepancies Over Time</h3>
                   <p className="text-sm text-slate-500">Click on a bar to filter claims by date.</p>
                 </div>
-                <div className="p-2 bg-blue-50 rounded-lg">
-                  <TrendingUp className="w-5 h-5 text-blue-600" />
+                <div className="flex items-center gap-4">
+                  <select
+                    className="text-sm border border-slate-300 rounded-md px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={selectedRuleFilter || ''}
+                    onChange={(e) => setSelectedRuleFilter(e.target.value || null)}
+                  >
+                    <option value="">All Rules</option>
+                    {allUniqueRules.map(rule => (
+                      <option key={rule} value={rule}>{rule}</option>
+                    ))}
+                  </select>
+                  <div className="p-2 bg-blue-50 rounded-lg">
+                    <TrendingUp className="w-5 h-5 text-blue-600" />
+                  </div>
                 </div>
               </div>
               
-              {/* Custom Bar Chart */}
+              {/* Custom Bar Chart with Trend Line */}
               <div className="h-[350px] w-full flex flex-col">
-                <div className="flex-1 relative flex items-end justify-around gap-2 pt-10 pb-8 border-b border-slate-200">
+                <div className="flex-1 relative flex items-end justify-around gap-2 pt-10 mb-8 border-b border-slate-200">
                   {/* Y-axis lines */}
-                  <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-8">
+                  <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
                     {[1, 0.75, 0.5, 0.25, 0].map(tick => (
                       <div key={tick} className="w-full border-t border-slate-100 border-dashed flex items-start">
                         <span className="text-[10px] text-slate-400 -mt-2 bg-white pr-2">
@@ -333,6 +382,27 @@ export function Dashboard({ claims, onClaimSelect, activeFilter, onFilterChange 
                     ))}
                   </div>
 
+                  {/* Trend Line (SVG) */}
+                  <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-20">
+                    {trendData.map((d, i) => {
+                      const x = `${(i + 0.5) / trendData.length * 100}%`;
+                      const y = `${100 - (d.discrepancies / maxChartValue) * 100}%`;
+                      
+                      const next = trendData[i + 1];
+                      const nextX = next ? `${(i + 1.5) / trendData.length * 100}%` : null;
+                      const nextY = next ? `${100 - (next.discrepancies / maxChartValue) * 100}%` : null;
+
+                      return (
+                        <g key={`line-${i}`}>
+                          {next && (
+                            <line x1={x} y1={y} x2={nextX} y2={nextY} stroke="#3b82f6" strokeWidth="2" />
+                          )}
+                          <circle cx={x} cy={y} r="4" fill="#3b82f6" className="transition-all duration-300" />
+                        </g>
+                      );
+                    })}
+                  </svg>
+
                   {/* Bars */}
                   {trendData.map((data, idx) => (
                     <div 
@@ -341,21 +411,16 @@ export function Dashboard({ claims, onClaimSelect, activeFilter, onFilterChange 
                       onClick={() => setSelectedDate(data.date)}
                     >
                       {/* Tooltip */}
-                      <div className="absolute -top-16 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-xs rounded p-2 whitespace-nowrap z-20 pointer-events-none shadow-lg">
+                      <div className="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 text-white text-xs rounded p-2 whitespace-nowrap z-30 pointer-events-none shadow-lg">
                         <p className="font-bold mb-1">{data.date}</p>
                         <p className="text-amber-400">Discrepancies: {data.discrepancies}</p>
-                        <p className="text-emerald-400">Accurate: {data.accurate}</p>
                       </div>
 
                       {/* Bar Group */}
                       <div className="flex items-end gap-1 w-full h-full justify-center">
                         <div 
-                          className="w-full bg-amber-500 rounded-t-sm hover:bg-amber-400 transition-colors"
+                          className="w-full bg-amber-500/80 rounded-t-sm hover:bg-amber-400 transition-colors"
                           style={{ height: `${(data.discrepancies / maxChartValue) * 100}%`, minHeight: data.discrepancies > 0 ? '4px' : '0' }}
-                        />
-                        <div 
-                          className="w-full bg-emerald-500 rounded-t-sm hover:bg-emerald-400 transition-colors"
-                          style={{ height: `${(data.accurate / maxChartValue) * 100}%`, minHeight: data.accurate > 0 ? '4px' : '0' }}
                         />
                       </div>
 
@@ -370,12 +435,12 @@ export function Dashboard({ claims, onClaimSelect, activeFilter, onFilterChange 
                 {/* Legend */}
                 <div className="flex justify-center gap-6 mt-6">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                    <span className="text-xs text-slate-600">Discrepancies</span>
+                    <div className="w-3 h-3 rounded-full bg-amber-500/80"></div>
+                    <span className="text-xs text-slate-600">Discrepancies (Bar)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                    <span className="text-xs text-slate-600">Accurate</span>
+                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span className="text-xs text-slate-600">Trend (Line)</span>
                   </div>
                 </div>
               </div>
@@ -442,18 +507,14 @@ export function Dashboard({ claims, onClaimSelect, activeFilter, onFilterChange 
               <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-amber-500"></span>
                 {selectedDate ? `Discrepancy Claims on ${selectedDate}` : 'All Discrepancy Claims'}
+                {selectedRuleFilter && <span className="ml-2 text-sm font-normal text-slate-500">(Filtered by {selectedRuleFilter})</span>}
               </h3>
               <span className="text-sm text-slate-500 bg-slate-100 px-2 py-1 rounded-md">
-                {selectedDate 
-                  ? claims.filter(c => c.Claim_Date === selectedDate && c.Audit_Status === 'DISCREPANCY').length 
-                  : claims.filter(c => c.Audit_Status === 'DISCREPANCY').length} items
+                {trendsTableData.length} items
               </span>
             </div>
             <DataTable 
-              data={selectedDate 
-                ? claims.filter(c => c.Claim_Date === selectedDate && c.Audit_Status === 'DISCREPANCY')
-                : claims.filter(c => c.Audit_Status === 'DISCREPANCY')
-              } 
+              data={trendsTableData} 
               columns={columns} 
               onRowClick={onClaimSelect}
               pageSize={5}
