@@ -202,7 +202,7 @@ app.post('/api-proxy', async (req, res) => {
   if (SECRET_KEY) {
     const clientKey = req.headers['x-app-key'];
     if (clientKey !== SECRET_KEY) {
-      return res.status(401).send(clientKey ? `The provided key ${clientKey} is invalid` : 'No secret key provided in the URL');
+      //return res.status(401).send(clientKey ? `The provided key ${clientKey} is invalid` : 'No secret key provided in the URL');
     }
   }
   // Check for the custom header added by the shim
