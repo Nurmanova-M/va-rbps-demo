@@ -3945,3 +3945,5 @@ export const mockRules: Rule[] = [
       "model_count": 2
     }
 ];
+
+export const getAllRules = (): Rule[] => Object.values(mockRules);
