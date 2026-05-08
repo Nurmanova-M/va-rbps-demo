@@ -1,21 +1,8 @@
-
 import { GoogleGenAI, Type } from '@google/genai';
 import { Claim } from '../types';
-import { mockRules } from '../rules';
+import { getAllRules } from '../rules';
 
-// Initialize the SDK. It expects process.env.API_KEY to be available in the environment.
-// Initialize the SDK strictly using process.env.API_KEY so the environment bundler can inject it.
-// For this browser-based demo environment, we simulate it if not present, 
-// const ai = new GoogleGenAI({ apiKey: process.env.API_KEY, vertexai: true });
-// but in a real app, this must be securely provided.
-const apiKey = (window as any).process?.env?.API_KEY || 'dummy-key-for-ui-testing';
-
-let ai: GoogleGenAI | null = null;
-try {
-  ai = new GoogleGenAI({ apiKey: apiKey, vertexai: true });
-} catch (e) {
-  console.warn("Failed to initialize GoogleGenAI. Ensure API_KEY is set.", e);
-}
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY, vertexai: true });
 
 // In-memory caches to store findings and prevent redundant API calls
 const explanationCache = new Map<number, string>();
@@ -31,7 +18,7 @@ const getRelevantRuleContext = (claim: Claim) => {
 
   if (uniqueCodes.length === 0) return '';
 
-
+  const mockRules = getAllRules();
   const matchedRules: typeof mockRules = [];
   mockRules.forEach(r => {
     const ruleMatch = r.rule_id.match(/CP\s*\d+([.-]\d+)?[a-zA-Z]?/i);
@@ -51,11 +38,10 @@ const getRelevantRuleContext = (claim: Claim) => {
 };
 
 export const generateExplanation = async (claim: Claim): Promise<string> => {
-  // Check cache first
   if (explanationCache.has(claim.Claim_ID)) {
     return explanationCache.get(claim.Claim_ID)!;
   }
-if (!ai) return JSON.stringify({ confidenceScore: 0, keyFindings: ["AI Service unavailable."], detailedExplanation: "Please check API key configuration." });
+
   const ruleContext = getRelevantRuleContext(claim);
 
   const prompt = `
@@ -86,7 +72,7 @@ if (!ai) return JSON.stringify({ confidenceScore: 0, keyFindings: ["AI Service u
         parts: [{ text: prompt }],
       },
       config: {
-        systemInstruction: 'You are a helpful, accurate, and concise assistant for VA claims adjudicators.',
+        systemInstruction: 'You are a helpful, accurate, and concise assistant for VA claims adjudicators. Always return valid JSON.',
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
@@ -111,22 +97,23 @@ if (!ai) return JSON.stringify({ confidenceScore: 0, keyFindings: ["AI Service u
     });
     
     const resultText = response.text || "{}";
-    // Save to cache
     explanationCache.set(claim.Claim_ID, resultText);
     return resultText;
     
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating explanation:", error);
-    return JSON.stringify({ confidenceScore: 0, keyFindings: ["Error generating explanation."], detailedExplanation: "Please try again later." });
+    return JSON.stringify({ 
+      confidenceScore: 0, 
+      keyFindings: ["Error generating explanation.", error?.message || String(error)], 
+      detailedExplanation: "Please try again later." 
+    });
   }
 };
 
 export const generateReflection = async (claim: Claim, explanationJson: string): Promise<string> => {
-  // Check cache first
   if (reflectionCache.has(claim.Claim_ID)) {
     return reflectionCache.get(claim.Claim_ID)!;
   }
-  if (!ai) return JSON.stringify({ confidenceScore: 0, keyFindings: ["AI Service unavailable."], detailedExplanation: "Please check API key configuration." });
 
   const ruleContext = getRelevantRuleContext(claim);
 
@@ -158,7 +145,7 @@ export const generateReflection = async (claim: Claim, explanationJson: string):
         parts: [{ text: prompt }],
       },
       config: {
-        systemInstruction: 'You are a strict, objective, and brief auditor checking for factual accuracy against provided data.',
+        systemInstruction: 'You are a strict, objective, and brief auditor checking for factual accuracy against provided data. Always return valid JSON.',
         responseMimeType: 'application/json',
         responseSchema: {
           type: Type.OBJECT,
@@ -182,12 +169,16 @@ export const generateReflection = async (claim: Claim, explanationJson: string):
     });
     
     const resultText = response.text || "{}";
-    // Save to cache
     reflectionCache.set(claim.Claim_ID, resultText);
     return resultText;
     
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating reflection:", error);
-    return JSON.stringify({ status: "Logical Error", confidenceScore: 0, detailedJustification: "Please try again later." });
+    return JSON.stringify({ 
+      status: "Logical Error", 
+      confidenceScore: 0, 
+      detailedJustification: error?.message || String(error) 
+    });
   }
 };
+
