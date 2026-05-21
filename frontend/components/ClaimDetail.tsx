@@ -134,7 +134,7 @@ export function ClaimDetail({ claim, onBack }: Props) {
           </button>
           <div>
             <h1 className="text-xl font-bold text-slate-900">Claim #{claim.Claim_ID}</h1>
-            <p className="text-sm text-slate-500">Submitted: {claim.Claim_Date}</p>
+            <p className="text-sm text-slate-500">Submitted: {claim.Claim_Date}}     Form ID: 686c</p>
           </div>
         </div>
         <div className="flex gap-3">
